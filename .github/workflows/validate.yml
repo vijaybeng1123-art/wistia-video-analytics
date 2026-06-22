@@ -1,0 +1,48 @@
+name: Validate Wistia Analytics Project
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check Python syntax
+        run: |
+          python -m py_compile glue_jobs/*.py
+
+      - name: Validate required files exist
+        run: |
+          test -f README.md
+          test -f glue_jobs/wistia_ingestion_job.py
+          test -f glue_jobs/bronze_to_silver_job.py
+          test -f glue_jobs/silver_to_gold_job.py
+          test -f athena/create_database.sql
+          test -f athena/create_dim_media.sql
+          test -f athena/create_fact_media_engagement.sql
+          test -f athena/validation_queries.sql
+          test -f docs/dwh_schema.md
+          test -f docs/data_dictionary.md
+          test -f docs/runbook.md
+
+      - name: Check SQL files are not empty
+        run: |
+          test -s athena/create_database.sql
+          test -s athena/create_dim_media.sql
+          test -s athena/create_fact_media_engagement.sql
+          test -s athena/validation_queries.sql
