@@ -40,6 +40,7 @@ jobs:
           test -f docs/dwh_schema.md
           test -f docs/data_dictionary.md
           test -f docs/runbook.md
+	  test -f docs/setup_configurations.md
 
       - name: Check SQL files are not empty
         run: |
