@@ -6,6 +6,7 @@ from pyspark.sql.functions import (
     lit,
     concat
 )
+from pyspark.sql.types import StructType, StructField, StringType
 
 # -----------------------------
 # CONFIG
@@ -15,6 +16,7 @@ SILVER_PATH = "s3://wistia-video-analytics-de/silver/media_stats/"
 
 GOLD_FACT_PATH = "s3://wistia-video-analytics-de/gold/fact_media_engagement/"
 GOLD_DIM_MEDIA_PATH = "s3://wistia-video-analytics-de/gold/dim_media/"
+GOLD_DIM_VISITOR_PATH = "s3://wistia-video-analytics-de/gold/dim_visitor/"
 GOLD_DEBUG_PATH = "s3://wistia-video-analytics-de/gold/debug/"
 
 # -----------------------------
@@ -63,10 +65,6 @@ silver_df.show(10, truncate=False)
 # -----------------------------
 # BUILD DIMENSION TABLE: dim_media
 # -----------------------------
-# Note:
-# Current Wistia stats endpoint gives media_id and metrics.
-# We are creating a basic media dimension now.
-# Later, if we ingest media metadata, we can add title, duration, upload_date, etc.
 
 dim_media_df = (
     silver_df
@@ -80,14 +78,49 @@ dim_media_df = (
     .withColumn("updated_at", current_timestamp())
 )
 
-dim_count = dim_media_df.count()
-print(f"Dim media record count: {dim_count}")
+dim_media_count = dim_media_df.count()
+print(f"Dim media record count: {dim_media_count}")
 
 print("Dim media schema:")
 dim_media_df.printSchema()
 
 print("Dim media sample:")
 dim_media_df.show(10, truncate=False)
+
+# -----------------------------
+# BUILD DIMENSION TABLE: dim_visitor
+# -----------------------------
+# Current Wistia media stats data provides aggregate visitor counts,
+# not individual visitor-level records.
+# This default dimension row keeps the dimensional model complete
+# and allows future visitor-level enrichment without breaking the model.
+
+visitor_schema = StructType([
+    StructField("visitor_id", StringType(), True),
+    StructField("ip_address", StringType(), True),
+    StructField("country", StringType(), True),
+    StructField("source_system", StringType(), True)
+])
+
+dim_visitor_seed_df = spark.createDataFrame(
+    [("unknown_visitor", None, "unknown", "wistia")],
+    visitor_schema
+)
+
+dim_visitor_df = (
+    dim_visitor_seed_df
+    .withColumn("created_at", current_timestamp())
+    .withColumn("updated_at", current_timestamp())
+)
+
+dim_visitor_count = dim_visitor_df.count()
+print(f"Dim visitor record count: {dim_visitor_count}")
+
+print("Dim visitor schema:")
+dim_visitor_df.printSchema()
+
+print("Dim visitor sample:")
+dim_visitor_df.show(10, truncate=False)
 
 # -----------------------------
 # BUILD FACT TABLE: fact_media_engagement
@@ -126,11 +159,12 @@ fact_media_engagement_df.show(20, truncate=False)
 # -----------------------------
 
 print(f"Writing dim_media to: {GOLD_DIM_MEDIA_PATH}")
-
 dim_media_df.write.mode("overwrite").parquet(GOLD_DIM_MEDIA_PATH)
 
-print(f"Writing fact_media_engagement to: {GOLD_FACT_PATH}")
+print(f"Writing dim_visitor to: {GOLD_DIM_VISITOR_PATH}")
+dim_visitor_df.write.mode("overwrite").parquet(GOLD_DIM_VISITOR_PATH)
 
+print(f"Writing fact_media_engagement to: {GOLD_FACT_PATH}")
 fact_media_engagement_df.write.mode("overwrite").parquet(GOLD_FACT_PATH)
 
 print("SILVER TO GOLD JOB FINISHED SUCCESSFULLY")

@@ -34,6 +34,7 @@ jobs:
           test -f glue_jobs/silver_to_gold_job.py
           test -f athena/create_database.sql
           test -f athena/create_dim_media.sql
+	  test -f athena/create_dim_visitor.sql
           test -f athena/create_fact_media_engagement.sql
           test -f athena/validation_queries.sql
           test -f docs/dwh_schema.md
@@ -45,4 +46,5 @@ jobs:
           test -s athena/create_database.sql
           test -s athena/create_dim_media.sql
           test -s athena/create_fact_media_engagement.sql
+	  test -f athena/create_dim_visitor.sql
           test -s athena/validation_queries.sql

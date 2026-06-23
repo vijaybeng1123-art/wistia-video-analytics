@@ -6,11 +6,15 @@ FROM wistia_analytics.fact_media_engagement
 GROUP BY engagement_date
 ORDER BY engagement_date;
 
--- Validate dimension table
+-- Validate media dimension
 SELECT *
 FROM wistia_analytics.dim_media;
 
--- Validate star schema join
+-- Validate visitor dimension
+SELECT *
+FROM wistia_analytics.dim_visitor;
+
+-- Validate star schema join with media dimension
 SELECT
     f.engagement_date,
     d.media_name,
